@@ -19,7 +19,6 @@ export class ProjectsService {
     if (!user) {
       throw new Error('User not found');
     }
-
     // Crear y guardar el proyecto
     const project = this.projectRepository.create({ name, description, user });
     return this.projectRepository.save(project);

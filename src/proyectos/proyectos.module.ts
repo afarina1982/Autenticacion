@@ -6,8 +6,10 @@ import { ProjectsController } from 'src/proyectos/proyectos.controller';
 import { ProjectsService } from './proyectos.service';
 import { UsersService } from 'src/usuarios/usuarios.service';
 import { AuthModule } from 'src/auth.module';
+import { JwtModule } from '@nestjs/jwt';
+
 @Module({
-  imports: [AuthModule,
+  imports: [AuthModule,JwtModule,
     TypeOrmModule.forFeature([User,Project])],
   controllers: [ProjectsController],
   providers: [ProjectsService, UsersService],
