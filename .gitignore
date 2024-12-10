@@ -1,0 +1,58 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+pnpm-lock.yaml
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+
+# Coverage and testing
+coverage/
+.nyc_output/
+
+# Build directories
+/dist/
+build/
+
+# Docker
+docker-compose.override.yml
+*.swp
+
+# Temporary files
+*.bak
+*.swp
+
+# TypeScript
+*.tsbuildinfo
+
+# Other files
+*.pem
+*.key
+*.crt
