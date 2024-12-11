@@ -7,6 +7,7 @@ import * as jwt from 'jsonwebtoken';
 import { User } from 'src/usuarios/entities/usuario.entity';
 import { CreateUserDto } from 'src/usuarios/dto/create-usuario.dto';
 import { BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
 
 @Injectable()
@@ -68,6 +69,7 @@ export class UsersService {
       user: { username: user.username, email: user.email, role: user.role }, // Información básica
     };
   }
+//====================================================================================================
 
   async changePassword(username: string, currentPassword: string, newPassword: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { username } });
@@ -89,13 +91,30 @@ export class UsersService {
     user.password_hash = await bcrypt.hash(newPassword, 10);
     await this.userRepository.save(user);
   }
+//====================================================================================================
 
   async changeRole(adminUsername: string, targetUsername: string, newRole: string): Promise<void> {
+    // Definir roles válidos
+    const validRoles = ['admin', 'user'];
+  
+    // Verificar si el nuevo rol es válido
+    if (!validRoles.includes(newRole)) {
+      throw new BadRequestException(`Invalid role: ${newRole}`);
+    }
+  
+    // Verificar que el usuario que realiza el cambio sea admin
     const adminUser = await this.userRepository.findOne({ where: { username: adminUsername } });
-    if (adminUser.role !== 'admin') throw new UnauthorizedException('Only admins can change roles');
-
+    if (!adminUser || adminUser.role !== 'admin') {
+      throw new UnauthorizedException('Only admins can change roles');
+    }
+  
+    // Buscar al usuario objetivo
     const targetUser = await this.userRepository.findOne({ where: { username: targetUsername } });
-
+    if (!targetUser) {
+      throw new NotFoundException(`User with username ${targetUsername} not found`);
+    }
+  
+    // Cambiar el rol del usuario objetivo
     targetUser.role = newRole;
     await this.userRepository.save(targetUser);
   }
