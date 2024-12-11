@@ -52,7 +52,7 @@ export class UsersService {
     }
   
     // Generar el token JWT
-    const secretKey = process.env.JWT_SECRET || 'default_secret'; // Usar variable de entorno
+    const secretKey = process.env.JWT_SECRET || 'secret_key'; // Usar variable de entorno
     const token = jwt.sign(
       {
         username: user.username,

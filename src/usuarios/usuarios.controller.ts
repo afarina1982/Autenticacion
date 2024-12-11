@@ -19,17 +19,19 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly authService: AuthService,  // Asegúrate de que este servicio esté correctamente inyectado
   ) { }
-
+//===============================================================================================
   @Post()
   @ApiBody({ type: CreateUserDto })
   async register(@Body() createUserDto: CreateUserDto): Promise<User> {
     return this.usersService.register(createUserDto);
   }
+//===============================================================================================
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto.identifier, loginDto.password);
   }
+//===============================================================================================
 
   @Patch('password')
   @UseGuards(AuthGuard) // Asegura que el usuario esté autenticado
@@ -52,6 +54,7 @@ export class UsersController {
     await this.usersService.changePassword(req.user.username, body.currentPassword, body.newPassword);
     return { message: 'Password changed successfully' };
   }
+//===============================================================================================
 
   @Patch(':username/:role')
   async changeRole(

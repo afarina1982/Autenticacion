@@ -1,28 +1,30 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { AuthService } from './auth.service';
-
+import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt'; // Importar JwtService
+import { UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext } from '@nestjs/common';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    
-    console.log('Authorization Header:', request.headers.authorization);
-    
-    const token = request.headers.authorization?.split(' ')[1]; // Bearer token
+    const token = request.headers['authorization']?.split(' ')[1]; // Extraer token del encabezado
 
     if (!token) {
-      throw new UnauthorizedException('Token not provided');
+      throw new UnauthorizedException('Token not found');
     }
 
-    const user = await this.authService.validateToken(token);
-    if (!user) {
+    try {
+      // Verificar el token usando el JwtService
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: 'secret_key', // Asegúrate de que esta clave coincida con la usada para firmar el token
+      });
+      request.user = payload; // Adjuntar el payload al request
+    } catch (error) {
       throw new UnauthorizedException('Invalid token');
     }
 
-    request.user = user; // Agrega el usuario autenticado a la solicitud
     return true;
   }
 }
