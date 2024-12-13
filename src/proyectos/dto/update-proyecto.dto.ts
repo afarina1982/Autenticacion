@@ -1,28 +1,18 @@
-import { IsString, IsOptional } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsNotEmpty } from 'class-validator';
 
-export class UpdateProyectoDto {
-  @ApiPropertyOptional({
-    description: 'Name of the project',
-    example: 'Updated Project Name',
-  })
-  @IsOptional()
+export class UpdateProjectDto {
+  @IsOptional() // No es obligatorio
   @IsString()
+  @IsNotEmpty()
   name?: string;
 
-  @ApiPropertyOptional({
-    description: 'Description of the project',
-    example: 'Updated Description of the Project',
-  })
-  @IsOptional()
+  @IsOptional() // No es obligatorio
   @IsString()
+  @IsNotEmpty()
   description?: string;
 
-  @ApiPropertyOptional({
-    description: 'Username of the user to assign to the project',
-    example: 'john_doe',
-  })
-  @IsOptional()
+  @IsOptional() // No es obligatorio
   @IsString()
-  username?: string;
+  @IsNotEmpty()
+  username?: string; // Si el usuario lo proporciona, se actualizará el dueño del proyecto
 }

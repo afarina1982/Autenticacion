@@ -4,7 +4,11 @@ import { Repository } from 'typeorm';
 import { Project } from './entities/proyecto.entity';
 import { CreateProjectDto } from './dto/create-proyecto.dto';
 import { User } from 'src/usuarios/entities/usuario.entity';
-import { UpdateProyectoDto } from './dto/update-proyecto.dto';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { UpdateProjectDto } from './dto/update-proyecto.dto';
+import { UnauthorizedException } from '@nestjs/common';
+
+
 
 @Injectable()
 export class ProyectosService {
@@ -46,21 +50,55 @@ export class ProyectosService {
   }
   //================================================================================
 
-  async findOne(id: string): Promise<Project | undefined> {
-    return this.projectRepository.findOne({ where: { id: Number(id) } }); // Convertir id a number
+  async findOne(id: string): Promise<Project> {
+    const project = await this.projectRepository.findOne({ where: { id: Number(id) } }); // Convertimos id a number
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    return project;
+  }
+//================================================================================
+async update(
+  id: string,
+  updateProjectDto: UpdateProjectDto,
+  username: string,
+  role: string,
+): Promise<Project> {
+  // Buscar el proyecto por ID, incluyendo el usuario asignado
+  const project = await this.projectRepository.findOne({
+    where: { id: Number(id) },
+    relations: ['user'], // Relación con el usuario para verificar permisos
+  });
+
+  if (!project) {
+    throw new NotFoundException('Project not found');
   }
 
-  // Actualizar un proyecto
-  async update(id: string, updateProjectDto: UpdateProyectoDto): Promise<Project> {
-    const project = await this.findOne(id);
+  // Validar permisos: solo admin o el propietario pueden editar
+  if (role !== 'admin' && project.user.username !== username) {
+    throw new UnauthorizedException(
+      'You do not have permission to update this project',
+    );
+  }
 
-    // Si el proyecto no existe, lanzar una excepción
-    if (!project) {
-      throw new Error('Project not found');
+  // Si se proporciona un nuevo username, buscar al nuevo usuario
+  if (updateProjectDto.username && updateProjectDto.username !== project.user.username) {
+    const newUser = await this.userRepository.findOne({
+      where: { username: updateProjectDto.username },
+    });
+
+    if (!newUser) {
+      throw new NotFoundException('New user not found');
     }
 
-    // Asignar los nuevos valores del DTO al proyecto
-    const updatedProject = Object.assign(project, updateProjectDto);
-    return this.projectRepository.save(updatedProject);
+    project.user = newUser; // Actualizar la relación del usuario
   }
+
+  // Actualizar los campos del proyecto, si son proporcionados
+  if (updateProjectDto.name) project.name = updateProjectDto.name;
+  if (updateProjectDto.description) project.description = updateProjectDto.description;
+
+  // Guardar los cambios
+  return await this.projectRepository.save(project);
+}
 }
