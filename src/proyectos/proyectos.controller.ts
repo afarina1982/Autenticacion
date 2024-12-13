@@ -6,9 +6,12 @@ import { AdminGuard } from 'src/admin.guard'; // Guard para verificar rol de adm
 import { Roles } from 'src/roles.decorator'; // Decorador para roles
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Patch, Param } from '@nestjs/common';
-import { RolesGuard } from 'src/roles.guard'; // Guard para verificar roles
 import { UpdateProjectDto } from './dto/update-proyecto.dto';
 import { ApiBody } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/JwtAuthGuard';
+import { Delete } from '@nestjs/common';
+import { GetUser } from 'src/getuser.decorator';
+import { User } from 'src/usuarios/entities/usuario.entity';
 
 
 
@@ -62,5 +65,15 @@ export class ProyectosController {
   
     return await this.proyectosService.update(id, updateProjectDto, username, role);
   }
-
+//================================================================================
+@Delete(':id')
+@ApiBearerAuth() 
+@UseGuards(JwtAuthGuard) 
+async deleteProject(
+  @Param('id') id: number,
+  @GetUser() user: User, // Obtiene el usuario desde el JWT
+) {
+  await this.proyectosService.deleteProject(id, user);
+  return { message: 'Proyecto eliminado con éxito' };
+}
 }

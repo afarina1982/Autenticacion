@@ -22,15 +22,15 @@ export class ProyectosService {
   async create(createProjectDto: CreateProjectDto, username: string): Promise<Project> {
     const user = await this.userRepository.findOne({ where: { username } });
 
-    // Si el usuario no existe, lanzar una excepción o manejarlo de otra manera
+    
     if (!user) {
       throw new Error('User not found');
     }
 
-    // Crear el proyecto y asignar la relación con el usuario
+    
     const project = this.projectRepository.create({
       ...createProjectDto,
-      user: user,  // Asignar el objeto completo del usuario
+      user: user,  
     });
 
     return await this.projectRepository.save(project);
@@ -39,11 +39,11 @@ export class ProyectosService {
   async findByUser(username: string): Promise<Project[]> {
     const projects = await this.projectRepository.find({
       where: {
-        user: { username }, // Suponiendo que 'user' es la relación con la entidad User
+        user: { username }, 
       },
     });
 
-    // Log para ver los proyectos obtenidos
+   
     console.log('Proyectos encontrados:', projects);
 
     return projects;
@@ -51,7 +51,7 @@ export class ProyectosService {
   //================================================================================
 
   async findOne(id: string): Promise<Project> {
-    const project = await this.projectRepository.findOne({ where: { id: Number(id) } }); // Convertimos id a number
+    const project = await this.projectRepository.findOne({ where: { id: Number(id) } }); 
     if (!project) {
       throw new NotFoundException('Project not found');
     }
@@ -64,24 +64,24 @@ async update(
   username: string,
   role: string,
 ): Promise<Project> {
-  // Buscar el proyecto por ID, incluyendo el usuario asignado
+  
   const project = await this.projectRepository.findOne({
     where: { id: Number(id) },
-    relations: ['user'], // Relación con el usuario para verificar permisos
+    relations: ['user'], 
   });
 
   if (!project) {
     throw new NotFoundException('Project not found');
   }
 
-  // Validar permisos: solo admin o el propietario pueden editar
+  
   if (role !== 'admin' && project.user.username !== username) {
     throw new UnauthorizedException(
       'You do not have permission to update this project',
     );
   }
 
-  // Si se proporciona un nuevo username, buscar al nuevo usuario
+  
   if (updateProjectDto.username && updateProjectDto.username !== project.user.username) {
     const newUser = await this.userRepository.findOne({
       where: { username: updateProjectDto.username },
@@ -91,14 +91,34 @@ async update(
       throw new NotFoundException('New user not found');
     }
 
-    project.user = newUser; // Actualizar la relación del usuario
+    project.user = newUser; 
   }
 
-  // Actualizar los campos del proyecto, si son proporcionados
+  
   if (updateProjectDto.name) project.name = updateProjectDto.name;
   if (updateProjectDto.description) project.description = updateProjectDto.description;
 
-  // Guardar los cambios
+ 
   return await this.projectRepository.save(project);
+}
+//================================================================================
+
+async deleteProject(id: number, user: User): Promise<void> {
+  const project = await this.projectRepository.findOne({
+    where: { id },
+    relations: ['user'],
+  });
+
+  if (!project) {
+    throw new NotFoundException('Proyecto no encontrado');
+  }
+
+  // Verificamos si el usuario es el propietario del proyecto
+  if (project.user.username !== user.username) {
+    throw new ForbiddenException('No tienes permiso para borrar este proyecto');
+  }
+
+  // Eliminamos el proyecto
+  await this.projectRepository.remove(project);
 }
 }
