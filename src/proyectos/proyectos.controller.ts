@@ -1,30 +1,59 @@
-import { Controller, Post, Body, Req, UseGuards, Request } from '@nestjs/common';
-import { ProjectsService } from 'src/proyectos/proyectos.service';
-import { CreateProjectDto } from 'src/proyectos/dto/create-proyecto.dto';
+import { Controller, Post, Body, UseGuards, Request, Get } from '@nestjs/common';
+import { ProyectosService } from './proyectos.service';
+import { CreateProjectDto } from './dto/create-proyecto.dto';
+import { AuthGuard } from 'src/auth.guard'; // Guard para autenticación
+import { AdminGuard } from 'src/admin.guard'; // Guard para verificar rol de admin
+import { Roles } from 'src/roles.decorator'; // Decorador para roles
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Roles } from 'src/roles.decorator';
-import { BadRequestException } from '@nestjs/common';
-import { RolesGuard } from 'src/roles.guard';
+import { Patch, Param } from '@nestjs/common';
+import { UpdateProyectoDto } from './dto/update-proyecto.dto';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { RolesGuard } from 'src/roles.guard'; // Guard para verificar roles
 
 
-@ApiTags('PROJECTS')
+@ApiTags('Projects')
 @Controller('projects')
-@UseGuards(RolesGuard)
-export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+export class ProyectosController {
+  constructor(private readonly proyectosService: ProyectosService) {}
 
   @Post()
-  @ApiBearerAuth()
-  @Roles('admin')
-  async createProject(@Body() createProjectDto: CreateProjectDto, @Request() req) {
-    // Verificar y usar el username desde el body o el token
-    const username = createProjectDto.username || req.user?.username;
-    if (!username) {
-      throw new BadRequestException('Username is required');
+  @ApiBearerAuth() // Añadir este decorador para requerir el token en el header
+  @UseGuards(AuthGuard, AdminGuard) // Usar AuthGuard para validar JWT y AdminGuard para verificar rol admin
+  @Roles('admin') // Sólo accesible para usuarios con rol admin
+  async create(@Body() createProjectDto: CreateProjectDto, @Request() req) {
+    const username = createProjectDto.username || req.user.username; // Si no se pasa username, asignar el del usuario autenticado
+    return await this.proyectosService.create(createProjectDto, username);
+  }
+//================================================================================
+  @Get()
+  @ApiBearerAuth() // Requiere el token en el encabezado
+  @UseGuards(AuthGuard) // Usar AuthGuard para validar la autenticación del usuario
+  async findAll(@Request() req) {
+    const username = req.user.username; // Obtener el username del usuario autenticado
+    return await this.proyectosService.findByUser(username); // Llamar al servicio para obtener los proyectos
+  }
+//================================================================================
+
+@Patch(':id')
+  @ApiBearerAuth() // Añadir este decorador para requerir el token en el header
+  @UseGuards(AuthGuard, RolesGuard) // Usar AuthGuard para validar JWT y RolesGuard para verificar el rol
+  @Roles('admin') // Sólo accesible para usuarios con rol admin
+  async update(@Param('id') id: string, @Body() updateProjectDto: UpdateProyectoDto, @Request() req) {
+    const project = await this.proyectosService.findOne(id);
+
+    if (!project) {
+      throw new Error('Project not found');
     }
 
-    return this.projectsService.createProject(createProjectDto.name, createProjectDto.description, username);
+    // Verificamos si el usuario es el propietario o un administrador
+    if (project.user.username !== req.user.username && req.user.role !== 'admin') {
+      throw new ForbiddenException('You do not have permission to update this project');
+    }
+
+    // Actualizamos el proyecto
+    Object.assign(project, updateProjectDto);
+    return await this.proyectosService.update(id, updateProjectDto);
   }
+
+
 }
-
-

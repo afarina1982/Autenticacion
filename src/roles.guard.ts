@@ -1,45 +1,35 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { ROLES_KEY } from './roles.decorator';
+import { ROLES_KEY } from './roles.decorator'; // Decorador para roles
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private jwtService: JwtService
-  ) { }
+  constructor(private reflector: Reflector, private jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Obtener los roles requeridos desde el decorador @Roles
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    if (!requiredRoles) return true; // Si no hay roles requeridos, permitir acceso
+    if (!requiredRoles) return true; // Si no se requieren roles, permitir el acceso
 
-    // Obtener la solicitud HTTP
     const request = context.switchToHttp().getRequest();
-    const token = request.headers['authorization']?.split(' ')[1]; // Extraer el token del header Authorization
+    const token = request.headers['authorization']?.split(' ')[1]; // Obtener el token del encabezado
 
     if (!token) {
       throw new UnauthorizedException('Token not found');
     }
 
     try {
-      // Verificar el token y obtener el payload
-      const payload = await this.jwtService.verifyAsync(token);
-
-      // Validar que el usuario tenga al menos uno de los roles requeridos
-      if (!requiredRoles.some((role) => payload.roles?.includes(role))) {
+      const payload = await this.jwtService.verifyAsync(token); // Verificar el token
+      if (!requiredRoles.some((role) => payload.role?.includes(role))) {
         throw new UnauthorizedException('User does not have the required role');
       }
 
-      // Adjuntar información del usuario al objeto `request`
-      request.user = payload;
-
-      return true; // Permitir acceso si pasa las validaciones
+      request.user = payload; // Adjuntar el usuario al request
+      return true; // Permitir acceso
     } catch (err) {
       throw new UnauthorizedException('Invalid token');
     }
